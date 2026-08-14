@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual Environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node / Dashboard
+node_modules/
+.next/
+out/
+dashboard_out/
+dashboard-next/
+
+# Lock files — use requirements.txt only for Python
+uv.lock
+
+
+# Misc
+*.log
+*.txt
+.env
+.env.local
+.pytest_cache/
+
+# Ignore hypothetical venv paths per A+ script warning
+clinical_triage_env/lib/
+clinical_triage_env/bin/
+clinical_triage_env/pyvenv.cfg
+
+# Agent internal files
+agent/
+.gemini/

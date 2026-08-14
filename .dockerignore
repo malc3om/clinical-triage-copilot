@@ -1,0 +1,48 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node build artifacts (built inside Docker)
+node_modules/
+.next/
+
+# Lock files (uv)
+uv.lock
+
+# Testing & validation
+.pytest_cache/
+tests/
+validate_submission.py
+validate-submission.sh
+
+# Misc
+*.log
+.env
+.env.local
+README.md

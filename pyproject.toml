@@ -1,0 +1,21 @@
+[project]
+name = "surgical"
+version = "2.0.0"
+description = "A high-fidelity clinical triage environment"
+authors = [{ name = "SURGICAL" }]
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "openai",
+    "requests",
+    "websockets",
+    "python-multipart",
+]
+
+[project.scripts]
+server = "server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SURGICAL — an AI copilot that learns to triage emergency patients under pressure. Watch a clinical AI agent decide, act, and score in real time.">
+    <meta name="theme-color" content="#07080A">
+    <title>SURGICAL — AI Clinical Triage Copilot</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2307080A'/%3E%3Cpath d='M4 16h6l2-6 4 12 3-9 2 3h7' stroke='%23E63946' stroke-width='2.5' fill='none' stroke-linecap='square'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ═══════════════════════════════════════════════════════════════
+           SURGICAL — BRUTALIST CLINICAL UI
+           Psychology of color: ink/bone = authority + clinical trust;
+           signal red = urgency/attention; teal = health + stability.
+           ═══════════════════════════════════════════════════════════════ */
+
+        :root {
+            --ink:   #07080A;
+            --ink2:  #0D0F12;
+            --ink3:  #14171C;
+            --ink4:  #1B1F26;
+            --line:  #232833;
+            --line2: #333A46;
+            --bone:  #ECE8DF;
+            --dim:   #8B919C;
+            --faint: #565C68;
+            --red:   #E63946;
+            --red2:  #B01F2C;
+            --teal:  #2A9D8F;
+            --teal2:#3FC0B0;
+            --amber: #E9A23B;
+            --grid:  repeating-linear-gradient(0deg, transparent 0 63px, rgba(236,232,223,0.035) 63px 64px),
+                     repeating-linear-gradient(90deg, transparent 0 63px, rgba(236,232,223,0.035) 63px 64px);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        *::selection { background: var(--red); color: var(--bone); }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--ink);
+            background-image: var(--grid);
+            color: var(--bone);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--ink2); }
+        ::-webkit-scrollbar-thumb { background: var(--line2); border: 1px solid var(--ink); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--red); }
+
+        /* ── Type ── */
+        .mono { font-family: 'Space Mono', monospace; }
+        .display {
+            font-family: 'Archivo', sans-serif;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+            line-height: 0.95;
+        }
+        .label {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            color: var(--dim);
+        }
+
+        /* ── Header ── */
+        header {
+            position: sticky; top: 0; z-index: 50;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 28px;
+            background: rgba(7,8,10,0.82);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--line);
+        }
+        .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--bone); }
+        .logo-mark {
+            width: 34px; height: 34px;
+            border: 2px solid var(--red);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 18px;
+            color: var(--red);
+            position: relative;
+        }
+        .logo-mark::before { content:''; position:absolute; inset:3px; border:1px solid var(--line2); }
+        .brand b { font-family: 'Archivo', sans-serif; font-size: 1.05rem; letter-spacing: 0.28em; }
+        nav { display: flex; align-items: center; gap: 22px; }
+        nav a {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em;
+            color: var(--dim); text-decoration: none;
+            padding: 6px 2px; border-bottom: 2px solid transparent;
+            transition: color .15s, border-color .15s;
+        }
+        nav a:hover { color: var(--bone); border-color: var(--red); }
+        .status-dot { width: 8px; height: 8px; background: var(--teal); border-radius: 0; animation: blink 1.6s infinite; }
+        .status-pill {
+            display: flex; align-items: center; gap: 8px;
+            font-family: 'Space Mono', monospace; font-size: 0.62rem; letter-spacing: 0.22em;
+            color: var(--dim); padding: 8px 14px; border: 1px solid var(--line);
+        }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+
+        /* ── Sections ── */
+        section { position: relative; }
+        .wrap { max-width: 1200px; margin: 0 auto; padding: 0 28px; }
+        .sec-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 36px; }
+        .sec-head .num { font-family:'Space Mono'; font-size: 0.9rem; color: var(--red); }
+        .sec-head h2 { font-family:'Archivo'; font-size: clamp(1.8rem, 4vw, 2.9rem); font-weight: 900; text-transform: uppercase; letter-spacing: -0.02em; }
+        .sec-head .rule { flex: 1; height: 1px; background: var(--line); }
+
+        /* ── HERO ── */
+        .hero { min-height: 92vh; display: flex; flex-direction: column; justify-content: center; position: relative; }
+        .hero-tag {
+            display: inline-flex; align-items: center; gap: 10px;
+            font-family:'Space Mono'; font-size: 0.66rem; letter-spacing: 0.3em; text-transform: uppercase;
+            color: var(--teal2); border: 1px solid var(--line2); padding: 8px 14px; margin-bottom: 28px;
+        }
+        .hero-tag .bar { width: 22px; height: 2px; background: var(--teal); }
+        .hero h1 {
+            font-family: 'Archivo'; font-weight: 900; text-transform: uppercase;
+            font-size: clamp(3rem, 10vw, 7.5rem); line-height: 0.92; letter-spacing: -0.03em;
+        }
+        .hero h1 .stroke { color: transparent; -webkit-text-stroke: 2px var(--bone); }
+        .hero h1 .red { color: var(--red); }
+        .hero-sub {
+            margin-top: 26px; max-width: 560px;
+            font-size: 1.02rem; line-height: 1.65; color: var(--dim);
+        }
+        .hero-sub b { color: var(--bone); }
+        .hero-cta { display: flex; gap: 14px; margin-top: 34px; flex-wrap: wrap; }
+        .btn {
+            font-family: 'Archivo', sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+            font-size: 0.82rem; padding: 15px 26px; border: 1px solid var(--line2);
+            background: transparent; color: var(--bone); cursor: pointer;
+            transition: transform .1s, box-shadow .1s, background .15s, color .15s;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 10px;
+        }
+        .btn:hover { transform: translate(-3px, -3px); box-shadow: 5px 5px 0 0 var(--line2); }
+        .btn:active { transform: translate(0,0); box-shadow: none; }
+        .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+        .btn-red { background: var(--red); border-color: var(--red2); color: #fff; }
+        .btn-red:hover { background: #ff4d5b; box-shadow: 5px 5px 0 0 var(--red2); }
+        .btn-teal { background: var(--teal); border-color: #1f7a6f; color: #06110f; }
+        .btn-teal:hover { background: var(--teal2); box-shadow: 5px 5px 0 0 #1f7a6f; }
+
+        /* ECG line */
+        .ecg-wrap { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+        .ecg-wrap svg { position: absolute; width: 130%; height: 220px; opacity: 0.12; }
+        .ecg-1 { top: 12%; left: -10%; animation: drift 22s linear infinite; }
+        .ecg-2 { bottom: 8%; right: -15%; animation: drift 30s linear infinite reverse; opacity: 0.07; }
+        @keyframes drift { from { transform: translateX(0); } to { transform: translateX(-18%); } }
+        .ecg-path { stroke-dasharray: 2600; stroke-dashoffset: 2600; animation: trace 6s linear infinite; }
+        @keyframes trace { 0% { stroke-dashoffset: 2600; } 60% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 0; } }
+
+        .hero-strip {
+            margin-top: 60px; display: grid; grid-template-columns: repeat(4, 1fr);
+            border: 1px solid var(--line);
+        }
+        .hs {
+            padding: 20px 22px; border-right: 1px solid var(--line); background: rgba(13,15,18,0.6);
+        }
+        .hs:last-child { border-right: none; }
+        .hs .v { font-family:'Space Mono'; font-size: 1.6rem; font-weight: 700; color: var(--bone); }
+        .hs .v em { font-style: normal; color: var(--teal2); }
+        .hs .k { font-family:'Space Mono'; font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--faint); margin-top: 6px; }
+        @media (max-width: 720px) { .hero-strip { grid-template-columns: 1fr 1fr; } .hs:nth-child(2) { border-right:none; } .hs:nth-child(-n+2) { border-bottom:1px solid var(--line); } }
+
+        /* ── PROBLEM ── */
+        .problem { padding: 110px 0 90px; border-top: 1px solid var(--line); }
+        .prob-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+        .prob-card { border: 1px solid var(--line); background: var(--ink2); padding: 30px 26px; position: relative; overflow: hidden; transition: border-color .2s, transform .2s; }
+        .prob-card:hover { border-color: var(--line2); transform: translateY(-3px); }
+        .prob-card .idx { font-family:'Space Mono'; color: var(--red); font-size: 0.8rem; }
+        .prob-card h3 { font-family:'Archivo'; font-size: 1.15rem; text-transform: uppercase; letter-spacing: 0.02em; margin: 14px 0 10px; }
+        .prob-card p { color: var(--dim); font-size: 0.9rem; line-height: 1.6; }
+        .prob-card .statline { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line); font-family:'Space Mono'; font-size: 0.72rem; color: var(--amber); }
+        .prob-note { margin-top: 18px; padding: 18px 22px; border: 1px solid var(--line2); border-left: 4px solid var(--red); color: var(--dim); font-size: 0.9rem; line-height: 1.6; }
+        .prob-note b { color: var(--bone); }
+        @media (max-width: 860px) { .prob-grid { grid-template-columns: 1fr; } }
+
+        /* ── COPILOT APP ── */
+        .copilot-sec { padding: 110px 0 60px; border-top: 1px solid var(--line); }
+        .app-frame { border: 1px solid var(--line2); background: var(--ink2); }
+        .app-topbar {
+            display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+            padding: 16px 22px; border-bottom: 1px solid var(--line2); background: var(--ink3);
+        }
+        .app-topbar .t { font-family:'Archivo'; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.9rem; }
+        .app-topbar .t .dot { color: var(--red); }
+        .ctrl { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+        .field { display: flex; flex-direction: column; gap: 6px; }
+        .field label { font-family:'Space Mono'; font-size: 0.58rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--dim); }
+        select, input[type="text"] {
+            background: var(--ink); color: var(--bone);
+            border: 1px solid var(--line2); padding: 10px 12px;
+            font-family: 'Space Mono', monospace; font-size: 0.78rem; outline: none;
+            min-width: 170px;
+        }
+        select:focus, input:focus { border-color: var(--red); }
+
+        .app-body { display: grid; grid-template-columns: 1.25fr 0.85fr; }
+        @media (max-width: 980px) { .app-body { grid-template-columns: 1fr; } }
+
+        /* Node graph */
+        .flow-panel { padding: 22px; border-right: 1px solid var(--line); }
+        @media (max-width: 980px) { .flow-panel { border-right: none; border-bottom: 1px solid var(--line); } }
+        .flow-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .agent-badge {
+            font-family:'Space Mono'; font-size: 0.62rem; letter-spacing: 0.16em; padding: 6px 12px;
+            border: 1px solid var(--line2); color: var(--dim); text-transform: uppercase;
+        }
+        .agent-badge.run { color: var(--red); border-color: var(--red); animation: blink 0.9s infinite; }
+        .agent-badge.ok { color: var(--teal2); border-color: var(--teal); }
+
+        .flow { display: flex; align-items: stretch; gap: 0; margin: 6px 0 20px; }
+        .node {
+            flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px;
+            min-width: 0; position: relative; cursor: default;
+        }
+        .node-chip {
+            width: 52px; height: 52px; display: flex; align-items: center; justify-content: center;
+            border: 1px solid var(--line2); background: var(--ink3);
+            font-family:'Space Mono'; font-size: 0.78rem; color: var(--dim);
+            transition: all .25s;
+        }
+        .node.active .node-chip { border-color: var(--red); color: #fff; background: var(--red); box-shadow: 0 0 0 4px rgba(230,57,70,0.18); animation: nodePulse 1s infinite; }
+        .node.done .node-chip { border-color: var(--teal); color: var(--teal2); background: rgba(42,157,143,0.12); }
+        .node .nlabel { font-family:'Space Mono'; font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--faint); }
+        .node.active .nlabel { color: var(--red); }
+        .node.done .nlabel { color: var(--teal2); }
+        .connector { flex: 0 0 24px; display: flex; align-items: center; }
+        .connector::after {
+            content:''; display: block; width: 100%; height: 2px; background: var(--line2);
+            transition: background .3s;
+        }
+        .connector.on::after { background: var(--teal); }
+        @keyframes nodePulse {
+            0%,100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+        @media (max-width: 560px) {
+            .node-chip { width: 42px; height: 42px; font-size: 0.64rem; }
+            .node .nlabel { font-size: 0.5rem; letter-spacing: 0.08em; }
+            .connector { flex-basis: 12px; }
+        }
+
+        .rationale-box {
+            min-height: 54px; padding: 14px 16px; border: 1px dashed var(--line2);
+            font-size: 0.84rem; color: var(--dim); line-height: 1.5; background: var(--ink);
+        }
+        .rationale-box b { color: var(--bone); font-family:'Space Mono'; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
+
+        /* Telemetry */
+        .telemetry { margin-top: 22px; border: 1px solid var(--line); background: var(--ink); padding: 16px; }
+        .tele-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .tele-head .label { font-size: 0.56rem; }
+        .tele-svg { width: 100%; height: 140px; display: block; }
+        .vital-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+        .vital { border: 1px solid var(--line); padding: 10px 12px; background: var(--ink3); }
+        .vital .vk { font-family:'Space Mono'; font-size: 0.52rem; letter-spacing: 0.18em; color: var(--faint); text-transform: uppercase; }
+        .vital .vv { font-family:'Space Mono'; font-size: 1.05rem; font-weight: 700; margin-top: 4px; }
+        .vital .vv.crit { color: var(--red); }
+        .vital .vv.warn { color: var(--amber); }
+        .vital .vv.ok { color: var(--teal2); }
+
+        /* Right column */
+        .side-panel { display: flex; flex-direction: column; min-width: 0; }
+        .side-block { border-bottom: 1px solid var(--line); padding: 22px; }
+        .side-block:last-child { border-bottom: none; }
+        .side-block h3 { font-family:'Archivo'; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 14px; }
+        .side-block h3 .n { color: var(--red); }
+
+        /* Score meter */
+        .meter-wrap { position: relative; margin-top: 18px; }
+        .meter { height: 22px; background: var(--ink3); border: 1px solid var(--line2); position: relative; }
+        .meter-fill { height: 100%; width: 0%; background: var(--teal); transition: width 0.6s cubic-bezier(0.22,1,0.36,1); }
+        .meter-fill.warn { background: var(--amber); }
+        .meter-fill.crit { background: var(--red); }
+        .meter-mark {
+            position: absolute; top: -6px; width: 3px; height: 32px; background: var(--bone);
+            transform: translateX(-50%); z-index: 2;
+        }
+        .meter-mark::after { content:''; position:absolute; left:50%; top:-8px; transform:translateX(-50%); border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid var(--bone); }
+        .meter-labels { display: flex; justify-content: space-between; font-family:'Space Mono'; font-size: 0.56rem; color: var(--faint); margin-top: 6px; }
+        .verdict { margin-top: 12px; font-family:'Archivo'; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; font-size: 1.05rem; }
+        .verdict.beat { color: var(--teal2); }
+        .verdict.at { color: var(--amber); }
+        .verdict.below { color: var(--red); }
+        .grade-big { font-family:'Space Mono'; font-weight: 700; font-size: 2.6rem; color: var(--bone); }
+        .grade-big span { font-size: 1rem; color: var(--dim); }
+
+        /* Patients */
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 9px 8px; text-align: left; border-bottom: 1px solid var(--line); font-size: 0.78rem; }
+        th { font-family:'Space Mono'; font-size: 0.52rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); font-weight: 700; }
+        td { color: var(--bone); }
+        td .sub { font-family:'Space Mono'; font-size: 0.62rem; color: var(--faint); }
+        .v-ok { color: var(--teal2); }
+        .v-warn { color: var(--amber); }
+        .v-crit { color: var(--red); }
+
+        /* Log */
+        .log-list { list-style: none; max-height: 220px; overflow-y: auto; }
+        .log-item { padding: 9px 10px; border-bottom: 1px solid var(--line); animation: slideIn 0.25s; font-size: 0.8rem; }
+        .log-item:last-child { border-bottom: none; }
+        .log-item:hover { background: var(--ink3); }
+        .log-time { font-family:'Space Mono'; font-size: 0.6rem; color: var(--faint); display: flex; justify-content: space-between; }
+        .log-rwd { font-family:'Space Mono'; font-weight: 700; }
+        .log-act { font-family:'Space Mono'; font-weight: 700; text-transform: uppercase; color: var(--red); font-size: 0.72rem; }
+        .log-act.teal { color: var(--teal2); }
+        .rationale { font-size: 0.72rem; color: var(--dim); font-style: italic; margin-top: 3px; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+
+        /* Tabs */
+        .tabs { display: flex; border: 1px solid var(--line2); margin-bottom: 22px; }
+        .tab {
+            flex: 1; padding: 12px 16px; text-align: center; cursor: pointer;
+            font-family:'Space Mono'; font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase;
+            color: var(--dim); border-right: 1px solid var(--line2); background: var(--ink3);
+            transition: background .15s, color .15s;
+        }
+        .tab:last-child { border-right: none; }
+        .tab.active { background: var(--red); color: #fff; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+        .action-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .action-form .full { grid-column: 1 / -1; }
+        .action-form select, .action-form input { width: 100%; min-width: 0; }
+
+        /* ── SCENARIOS ── */
+        .scen-sec { padding: 110px 0; border-top: 1px solid var(--line); }
+        .scen-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+        @media (max-width: 900px) { .scen-grid { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 600px) { .scen-grid { grid-template-columns: 1fr; } }
+        .scen-card { border: 1px solid var(--line); background: var(--ink2); padding: 24px; display: flex; flex-direction: column; gap: 12px; transition: transform .2s, border-color .2s; }
+        .scen-card:hover { transform: translateY(-4px); border-color: var(--line2); }
+        .scen-top { display: flex; justify-content: space-between; align-items: center; }
+        .diff { font-family:'Space Mono'; font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase; padding: 4px 10px; border: 1px solid var(--line2); }
+        .diff.easy { color: var(--teal2); border-color: var(--teal); }
+        .diff.medium { color: var(--amber); border-color: var(--amber); }
+        .diff.hard { color: var(--red); border-color: var(--red); }
+        .scen-card h3 { font-family:'Archivo'; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.02em; }
+        .scen-card p { color: var(--dim); font-size: 0.85rem; line-height: 1.55; flex: 1; }
+        .scen-meta { display: flex; gap: 16px; font-family:'Space Mono'; font-size: 0.66rem; color: var(--faint); padding-top: 12px; border-top: 1px dashed var(--line); }
+        .scen-meta b { color: var(--bone); }
+
+        /* ── SYSTEM ── */
+        .sys-sec { padding: 110px 0 90px; border-top: 1px solid var(--line); }
+        .sys-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        @media (max-width: 860px) { .sys-grid { grid-template-columns: 1fr; } }
+        .sys-card { border: 1px solid var(--line); padding: 26px; background: var(--ink2); }
+        .sys-card h3 { font-family:'Archivo'; text-transform: uppercase; letter-spacing: 0.04em; font-size: 1rem; margin-bottom: 14px; }
+        .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip { font-family:'Space Mono'; font-size: 0.66rem; padding: 7px 12px; border: 1px solid var(--line2); color: var(--dim); }
+        .chip.hl { color: var(--teal2); border-color: var(--teal); }
+        .loop-steps { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-family:'Space Mono'; font-size: 0.7rem; }
+        .loop-steps .ls { padding: 9px 14px; border: 1px solid var(--line2); }
+        .loop-steps .ls.hot { color: var(--red); border-color: var(--red); }
+        .loop-steps .ar { color: var(--faint); }
+        .endpoint { font-family:'Space Mono'; font-size: 0.72rem; padding: 8px 12px; margin-bottom: 8px; border: 1px solid var(--line); display: flex; gap: 10px; }
+        .endpoint .m { color: var(--red); }
+        .endpoint .p { color: var(--bone); }
+
+        /* ── FOOTER ── */
+        footer { border-top: 1px solid var(--line); padding: 40px 0; }
+        .foot { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; color: var(--faint); font-size: 0.78rem; }
+        .foot b { color: var(--dim); font-family:'Archivo'; letter-spacing: 0.18em; }
+        .foot a { color: var(--dim); text-decoration: none; border-bottom: 1px solid var(--line2); }
+        .foot a:hover { color: var(--bone); }
+
+        /* Reveal animation hook (only when GSAP present) */
+        html.gsap [data-reveal] { opacity: 0; transform: translateY(28px); }
+        @media (prefers-reduced-motion: reduce) {
+            html.gsap [data-reveal] { opacity: 1 !important; transform: none !important; }
+            .ecg-1, .ecg-2 { animation: none; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <a class="brand" href="#top">
+        <div class="logo-mark">S</div>
+        <b>SURGICAL</b>
+    </a>
+    <nav>
+        <a href="#problem">Problem</a>
+        <a href="#copilot">Copilot</a>
+        <a href="#scenarios">Scenarios</a>
+        <a href="#system">System</a>
+    </nav>
+    <div class="status-pill"><span class="status-dot" id="status-dot"></span><span id="ws-badge">LIVE</span></div>
+</header>
+
+<!-- ══ HERO ══ -->
+<section class="hero" id="top">
+    <div class="ecg-wrap">
+        <svg class="ecg-1" viewBox="0 0 1200 160" preserveAspectRatio="none">
+            <path class="ecg-path" d="M0 80 H300 L315 80 L325 20 L340 140 L352 55 L360 80 H520 L535 80 L545 25 L560 135 L572 60 L580 80 H760 L775 80 L785 30 L800 130 L812 65 L820 80 H1000 L1015 80 L1025 40 L1040 120 L1052 70 L1060 80 H1200" fill="none" stroke="#E63946" stroke-width="2"/>
+        </svg>
+        <svg class="ecg-2" viewBox="0 0 1200 160" preserveAspectRatio="none">
+            <path class="ecg-path" d="M0 80 H300 L315 80 L325 20 L340 140 L352 55 L360 80 H520 L535 80 L545 25 L560 135 L572 60 L580 80 H760 L775 80 L785 30 L800 130 L812 65 L820 80 H1000 L1015 80 L1025 40 L1040 120 L1052 70 L1060 80 H1200" fill="none" stroke="#2A9D8F" stroke-width="2" style="animation-delay:-3s"/>
+        </svg>
+    </div>
+    <div class="wrap">
+        <div class="hero-tag"><span class="bar"></span> AI for Emergency Medicine — clinical agent environment</div>
+        <h1 data-reveal>
+            AI that learns<br>
+            to <span class="stroke">triage</span> under<br>
+            <span class="red">pressure.</span>
+        </h1>
+        <p class="hero-sub" data-reveal>
+            <b>SURGICAL</b> is a clinical-triage copilot that watches a patient walk in, decides the
+            <b>next critical action</b> — EKG? Cath lab? Antibiotics? — and explains itself, in real time.
+            Six emergency scenarios. One reward signal: <b>do the right thing before the clock runs out.</b>
+        </p>
+        <div class="hero-cta" data-reveal>
+            <a class="btn btn-red" href="#copilot">Launch Copilot ↓</a>
+            <a class="btn" href="#problem">Why it matters</a>
+            <a class="btn" href="https://github.com/malc3om/clinical-triage-copilot" target="_blank" rel="noopener">Source ↗</a>
+        </div>
+        <div class="hero-strip" data-reveal>
+            <div class="hs"><div class="v">6<em>×</em></div><div class="k">Emergency scenarios</div></div>
+            <div class="hs"><div class="v">0.99<em>▲</em></div><div class="k">Peak triage score</div></div>
+            <div class="hs"><div class="v">100<em>%</em></div><div class="k">Above baseline, every task</div></div>
+            <div class="hs"><div class="v">47<em>/47</em></div><div class="k">Tests passing</div></div>
+        </div>
+    </div>
+</section>
+
+<!-- ══ PROBLEM ══ -->
+<section class="problem" id="problem">
+    <div class="wrap">
+        <div class="sec-head" data-reveal>
+            <span class="num">01</span>
+            <h2>The Emergency Department is losing the race</h2>
+            <span class="rule"></span>
+        </div>
+        <div class="prob-grid">
+            <div class="prob-card" data-reveal>
+                <span class="idx">/A</span>
+                <h3>Time is tissue</h3>
+                <p>A STEMI's cath-lab door-to-balloon window is <b style="color:var(--bone)">90 minutes</b>. Every minute of delay raises mortality. Triage is where those minutes are won — or lost.</p>
+                <div class="statline">ACS mortality ↑ 7.5% / 30-min delay</div>
+            </div>
+            <div class="prob-card" data-reveal>
+                <span class="idx">/B</span>
+                <h3>Overwhelmed clinicians</h3>
+                <p>Emergency departments are overcrowded and understaffed. One mass-casualty event can drop <b style="color:var(--bone)">5 critical patients</b> on a team built for one.</p>
+                <div class="statline">ED boarding ↑ 300% since 2010</div>
+            </div>
+            <div class="prob-card" data-reveal>
+                <span class="idx">/C</span>
+                <h3>Protocols fail under pressure</h3>
+                <p>Sepsis needs antibiotics within the <b style="color:var(--bone)">3-hour bundle</b>. Stroke needs a CT within <b style="color:var(--bone)">25 minutes</b>. Gaps between guideline and execution are where patients are lost.</p>
+                <div class="statline">Only ~50% of codes achieve target times</div>
+            </div>
+        </div>
+        <p class="prob-note" data-reveal>
+            <b>SURGICAL asks:</b> can an AI agent be trained to follow these protocols flawlessly, at speed, under scarcity — and teach humans to do the same? It is a <b>safe training ground</b> for emergency triage decision-making.
+        </p>
+    </div>
+</section>
+
+<!-- ══ COPILOT ══ -->
+<section class="copilot-sec" id="copilot">
+    <div class="wrap">
+        <div class="sec-head" data-reveal>
+            <span class="num">02</span>
+            <h2>Watch the AI copilot work</h2>
+            <span class="rule"></span>
+        </div>
+
+        <div class="app-frame" data-reveal>
+            <div class="app-topbar">
+                <div class="t"><span class="dot">●</span> Triage Control — Live Episode</div>
+                <div class="ctrl">
+                    <div class="field">
+                        <label>Scenario</label>
+                        <select id="task-select"></select>
+                    </div>
+                    <div class="field">
+                        <label>Agent Mode</label>
+                        <select id="agent-mode">
+                            <option value="false">Fast Heuristic</option>
+                            <option value="true">AI LLM</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-red" id="btn-agent" onclick="runAgent()">▶ RUN AI AGENT</button>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" id="tab-copilot" onclick="switchTab('copilot')">Copilot</div>
+                <div class="tab" id="tab-manual" onclick="switchTab('manual')">Manual — You triage</div>
+            </div>
+
+            <div class="tab-pane active" id="pane-copilot">
+                <div class="app-body">
+                    <div class="flow-panel">
+                        <div class="flow-head">
+                            <span class="label" id="scenario-label">Loading scenarios…</span>
+                            <span class="agent-badge" id="agent-badge">IDLE</span>
+                        </div>
+
+                        <!-- Decision flow -->
+                        <div class="flow" id="flow">
+                            <div class="node" data-node="ASSESS"><div class="node-chip">01</div><span class="nlabel">Assess</span></div>
+                            <div class="connector" data-conn="ASSESS-DIAGNOSE"></div>
+                            <div class="node" data-node="DIAGNOSE"><div class="node-chip">02</div><span class="nlabel">Diagnose</span></div>
+                            <div class="connector" data-conn="DIAGNOSE-PRIORITIZE"></div>
+                            <div class="node" data-node="PRIORITIZE"><div class="node-chip">03</div><span class="nlabel">Prioritize</span></div>
+                            <div class="connector" data-conn="PRIORITIZE-TREAT"></div>
+                            <div class="node" data-node="TREAT"><div class="node-chip">04</div><span class="nlabel">Treat</span></div>
+                            <div class="connector" data-conn="TREAT-DISPOSE"></div>
+                            <div class="node" data-node="DISPOSE"><div class="node-chip">05</div><span class="nlabel">Dispose</span></div>
+                        </div>
+
+                        <div class="rationale-box" id="rationale"><b>READY.</b> Select a scenario and press RUN AI AGENT — each decision will light up here.</div>
+
+                        <!-- Telemetry -->
+                        <div class="telemetry">
+                            <div class="tele-head">
+                                <span class="label">Reward signal — score per action</span>
+                                <span class="label mono" id="tele-total">+0.00</span>
+                            </div>
+                            <svg class="tele-svg" id="tele-svg" viewBox="0 0 600 140" preserveAspectRatio="none"></svg>
+                            <div class="vital-row" id="vital-row"></div>
+                        </div>
+                    </div>
+
+                    <div class="side-panel">
+                        <div class="side-block">
+                            <h3><span class="n">▸</span> Final triage grade</h3>
+                            <div class="grade-big" id="grade-big">—<span> / 1.00</span></div>
+                            <div class="meter-wrap">
+                                <div class="meter" id="meter">
+                                    <div class="meter-fill" id="meter-fill"></div>
+                                    <div class="meter-mark" id="meter-mark" style="display:none"></div>
+                                </div>
+                                <div class="meter-labels"><span>0</span><span>baseline</span><span>1.00</span></div>
+                            </div>
+                            <div class="verdict" id="verdict">AWAITING RUN</div>
+                        </div>
+                        <div class="side-block">
+                            <h3><span class="n">▸</span> Patients on board</h3>
+                            <div style="overflow-x:auto;">
+                                <table>
+                                    <thead><tr><th>Pt</th><th>Complaint</th><th>HR</th><th>SpO2</th></tr></thead>
+                                    <tbody id="pt-table"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="side-block">
+                            <h3><span class="n">▸</span> Agent decision log</h3>
+                            <ul class="log-list" id="agent-log"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane" id="pane-manual">
+                <div class="app-body">
+                    <div class="flow-panel">
+                        <div class="flow-head">
+                            <span class="label">You are the triage officer. Beat the agent.</span>
+                            <button class="btn" id="btn-reset" onclick="doReset()" style="padding:10px 16px;font-size:0.72rem">⟳ START EPISODE</button>
+                        </div>
+                        <div class="rationale-box" id="manual-rationale"><b>MANUAL MODE.</b> Start an episode, then act on the patient yourself.</div>
+                        <div class="telemetry">
+                            <div class="tele-head">
+                                <span class="label">Your run</span>
+                                <span class="label mono" id="tele-total-manual">+0.00</span>
+                            </div>
+                            <svg class="tele-svg" id="tele-svg-manual" viewBox="0 0 600 140" preserveAspectRatio="none"></svg>
+                        </div>
+                        <div style="margin-top:14px">
+                            <div class="action-form" id="action-form">
+                                <div class="field">
+                                    <label>Action Type</label>
+                                    <select id="act-type" onchange="updateParams()">
+                                        <option value="order_diagnostic">Order Diagnostic</option>
+                                        <option value="assign_esi_level">Assign ESI Level</option>
+                                        <option value="activate_pathway">Activate Pathway</option>
+                                        <option value="administer_medication">Administer Medication</option>
+                                        <option value="disposition">Disposition</option>
+                                        <option value="wait">Wait</option>
+                                    </select>
+                                </div>
+                                <div class="field">
+                                    <label>Patient</label>
+                                    <select id="act-patient"></select>
+                                </div>
+                                <div class="field">
+                                    <label>Parameter</label>
+                                    <select id="act-param"></select>
+                                </div>
+                                <div class="field">
+                                    <label>Rationale</label>
+                                    <input id="act-rationale" type="text" value="Clinical judgment">
+                                </div>
+                                <div class="full">
+                                    <button class="btn btn-teal" id="btn-step" onclick="doStep()" disabled style="width:100%;justify-content:center">▶ EXECUTE ACTION</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="side-panel">
+                        <div class="side-block">
+                            <h3><span class="n">▸</span> Active patients</h3>
+                            <div style="overflow-x:auto;">
+                                <table>
+                                    <thead><tr><th>Pt</th><th>Complaint</th><th>HR</th><th>BP</th><th>SpO2</th><th>GCS</th></tr></thead>
+                                    <tbody id="pt-table-manual"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="side-block">
+                            <h3><span class="n">▸</span> Your action log</h3>
+                            <ul class="log-list" id="log"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══ SCENARIOS ══ -->
+<section class="scen-sec" id="scenarios">
+    <div class="wrap">
+        <div class="sec-head" data-reveal>
+            <span class="num">03</span>
+            <h2>Six scenarios, one clock</h2>
+            <span class="rule"></span>
+        </div>
+        <div class="scen-grid" id="scen-grid"><!-- injected from /scenarios --></div>
+    </div>
+</section>
+
+<!-- ══ SYSTEM ══ -->
+<section class="sys-sec" id="system">
+    <div class="wrap">
+        <div class="sec-head" data-reveal>
+            <span class="num">04</span>
+            <h2>Under the hood</h2>
+            <span class="rule"></span>
+        </div>
+        <div class="sys-grid">
+            <div class="sys-card" data-reveal>
+                <h3>The agent loop</h3>
+                <div class="loop-steps">
+                    <span class="ls hot">Observe</span><span class="ar">→</span>
+                    <span class="ls hot">Decide</span><span class="ar">→</span>
+                    <span class="ls">Act</span><span class="ar">→</span>
+                    <span class="ls">Reward</span><span class="ar">→</span>
+                    <span class="ls">Reassess</span>
+                </div>
+                <p style="color:var(--dim);font-size:0.85rem;line-height:1.6;margin-top:14px">
+                    The copilot reads live vitals, picks the <b style="color:var(--bone)">next critical action</b> from a clinical
+                    policy (optionally driven by a <b style="color:var(--bone)">frontier LLM</b> — DeepSeek-V3.2 on
+                    Featherless), executes it, and learns from the
+                    reward signal — ESI accuracy, protocol timing, disposition safety. Every action carries a
+                    human-readable rationale.
+                </p>
+            </div>
+            <div class="sys-card" data-reveal>
+                <h3>Stack</h3>
+                <div class="chip-row">
+                    <span class="chip">Python 3.11</span>
+                    <span class="chip hl">OpenAI SDK</span>
+                    <span class="chip">FastAPI</span>
+                    <span class="chip">WebSockets</span>
+                    <span class="chip hl">Featherless · DeepSeek-V3.2</span>
+                    <span class="chip">Docker</span>
+                    <span class="chip">Hugging Face Spaces</span>
+                    <span class="chip">pytest</span>
+                </div>
+                <h3 style="margin-top:20px">Public API</h3>
+                <div class="endpoint"><span class="m">POST</span><span class="p">/run-agent</span><span style="color:var(--faint)">run full episode</span></div>
+                <div class="endpoint"><span class="m">POST</span><span class="p">/reset</span><span style="color:var(--faint)">new episode</span></div>
+                <div class="endpoint"><span class="m">POST</span><span class="p">/step</span><span style="color:var(--faint)">manual action</span></div>
+                <div class="endpoint"><span class="m">GET</span><span class="p">/scenarios</span><span style="color:var(--faint)">task metadata</span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <div class="wrap foot">
+        <div><b>SURGICAL</b> — AI clinical triage copilot · emergency-medicine environment</div>
+        <div><a href="https://github.com/malc3om/clinical-triage-copilot" target="_blank" rel="noopener">github.com/malc3om/clinical-triage-copilot</a></div>
+    </div>
+</footer>
+
+<!-- GSAP -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+    const _forceReveal = new URLSearchParams(location.search).get('screenshot') === '1';
+    document.documentElement.classList.toggle('gsap', !_forceReveal && !!(window.gsap && window.ScrollTrigger));
+    if (!_forceReveal && window.gsap && window.ScrollTrigger) {
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.utils.toArray('[data-reveal]').forEach((el) => {
+            gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
+                scrollTrigger: { trigger: el, start: 'top 85%' } });
+        });
+    }
+</script>
+
+<script>
+    // ── State ──
+    let sessionId = null;
+    let stepCount = 0;
+    let patients = [];
+    let episodeDone = false;
+    let agentRunning = false;
+    let tasks = [];
+    const BASE = window.location.origin;
+    const $ = (id) => document.getElementById(id);
+
+    const PARAMS = {
+        order_diagnostic: ['troponin', 'ecg', 'cbc', 'bmp', 'lactate', 'blood_culture', 'chest_xray', 'ct_head', 'ct_angio', 'urinalysis', 'coag_panel', 'blood_gas'],
+        assign_esi_level: ['1', '2', '3', '4', '5'],
+        activate_pathway: ['stemi', 'sepsis', 'stroke', 'trauma', 'cardiac_arrest', 'mci'],
+        administer_medication: ['aspirin', 'heparin', 'nitroglycerin', 'morphine', 'antibiotics', 'tpa', 'epinephrine', 'normal_saline', 'vasopressor', 'oxygen'],
+        disposition: ['admit_icu', 'admit_cardiac_icu', 'admit_floor', 'admit_telemetry', 'transfer_cath_lab', 'transfer_or', 'transfer_stroke_center', 'discharge', 'observe'],
+        wait: ['5', '10', '15', '30']
+    };
+
+    // Map action_type → decision-flow node
+    const NODE_MAP = {
+        order_diagnostic: 'DIAGNOSE',
+        assign_esi_level: 'PRIORITIZE',
+        activate_pathway: 'TREAT',
+        administer_medication: 'TREAT',
+        disposition: 'DISPOSE',
+        wait: 'ASSESS',
+        reset: 'ASSESS'
+    };
+    const NODE_ORDER = ['ASSESS', 'DIAGNOSE', 'PRIORITIZE', 'TREAT', 'DISPOSE'];
+
+    // ── Scenario loading ──
+    async function loadScenarios() {
+        try {
+            const r = await fetch(`${BASE}/scenarios`);
+            const data = await r.json();
+            tasks = data.tasks || [];
+            const sel = $('task-select');
+            sel.innerHTML = '';
+            tasks.forEach(t => {
+                const o = document.createElement('option');
+                o.value = t.id;
+                o.textContent = `${t.name} — ${t.difficulty}`;
+                sel.appendChild(o);
+            });
+            const grid = $('scen-grid');
+            grid.innerHTML = '';
+            tasks.forEach((t, i) => {
+                const el = document.createElement('div');
+                el.className = 'scen-card';
+                el.innerHTML = `
+                    <div class="scen-top"><span class="diff ${t.difficulty}">${t.difficulty}</span><span class="mono" style="color:var(--faint);font-size:0.68rem">${t.max_steps} steps</span></div>
+                    <h3>${t.name}</h3>
+                    <p>${t.description}</p>
+                    <div class="scen-meta"><span>BASELINE <b>${t.baseline_score.toFixed(2)}</b></span><span>BEDS <b>${t.total_beds || 10}</b></span></div>`;
+                grid.appendChild(el);
+                if (!_forceReveal && window.gsap) {
+                    gsap.from(el, { opacity: 0, y: 24, duration: 0.5, ease: 'power3.out', delay: 0.06 * i });
+                }
+            });
+            onTaskChange();
+        } catch (e) {
+            const sel = $('task-select');
+            sel.innerHTML = '<option value="task_stemi_code">STEMI Code</option>';
+        }
+    }
+
+    function onTaskChange() {
+        const id = $('task-select').value;
+        const t = tasks.find(x => x.id === id);
+        $('scenario-label').textContent = t ? `${t.name} · ${t.difficulty} · baseline ${t.baseline_score.toFixed(2)}` : id;
+    }
+
+    // ── Decision-flow nodes ──
+    function highlightNode(nodeName, isDone) {
+        document.querySelectorAll('.node').forEach(n => {
+            if (n.dataset.node === nodeName) {
+                n.classList.add(isDone ? 'done' : 'active');
+                n.classList.remove(isDone ? 'active' : 'done');
+            }
+        });
+    }
+    function markNodeDone(nodeName) {
+        document.querySelectorAll('.node').forEach(n => {
+            if (n.dataset.node === nodeName) {
+                n.classList.remove('active');
+                n.classList.add('done');
+            }
+        });
+        const idx = NODE_ORDER.indexOf(nodeName);
+        if (idx > -1 && idx < NODE_ORDER.length - 1) {
+            const conn = document.querySelector(`[data-conn="${NODE_ORDER[idx]}-${NODE_ORDER[idx+1]}"]`);
+            if (conn) conn.classList.add('on');
+        }
+    }
+    function resetNodes() {
+        document.querySelectorAll('.node').forEach(n => { n.classList.remove('active', 'done'); });
+        document.querySelectorAll('.connector').forEach(c => c.classList.remove('on'));
+    }
+
+    // ── Telemetry ──
+    const telePoints = [];
+    function drawTelemetry(svgId, pts, baseline) {
+        const svg = $(svgId);
+        const W = 600, H = 140;
+        if (!pts.length) { svg.innerHTML = ''; return; }
+        const maxV = Math.max(1, ...pts.map(p => Math.abs(p)));
+        let d = '', i = 0;
+        pts.forEach((p, idx) => {
+            const x = (idx / Math.max(1, pts.length - 1)) * W;
+            const y = H - 8 - ((p + maxV) / (maxV * 2)) * (H - 30);
+            d += (idx === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
+            i++;
+        });
+        const bY = H - 8 - ((baseline + maxV) / (maxV * 2)) * (H - 30);
+        svg.innerHTML = `
+            <line x1="0" y1="${H-10}" x2="${W}" y2="${H-10}" stroke="#232833" stroke-width="1"/>
+            <line x1="0" y1="${bY}" x2="${W}" y2="${bY}" stroke="#E9A23B" stroke-width="1" stroke-dasharray="6 5"/>
+            <path d="${d}" fill="none" stroke="#2A9D8F" stroke-width="2.5"/>
+            <circle cx="${((pts.length-1)/Math.max(1,pts.length-1))*W}" cy="${H-8-((pts[pts.length-1]+maxV)/(maxV*2))*(H-30)}" r="4" fill="#3FC0B0"/>`;
+    }
+
+    function renderVitals(obs) {
+        const row = $('vital-row');
+        if (!obs || !obs.patients || !obs.patients.length) { row.innerHTML = ''; return; }
+        const p = obs.patients[0];
+        const v = p.vitals || {};
+        const hrC = v.heart_rate > 110 || v.heart_rate < 50 ? 'crit' : v.heart_rate > 100 ? 'warn' : 'ok';
+        const spC = v.spo2 < 92 ? 'crit' : v.spo2 < 95 ? 'warn' : 'ok';
+        row.innerHTML = `
+            <div class="vital"><div class="vk">${p.patient_id} · HR</div><div class="vv ${hrC}">${v.heart_rate ?? '—'}</div></div>
+            <div class="vital"><div class="vk">BP</div><div class="vv">${v.systolic_bp ?? '—'}/${v.diastolic_bp ?? '—'}</div></div>
+            <div class="vital"><div class="vk">SpO2</div><div class="vv ${spC}">${v.spo2 ?? '—'}%</div></div>
+            <div class="vital"><div class="vk">GCS</div><div class="vv">${v.gcs ?? 15}</div></div>`;
+    }
+
+    // ── Score meter ──
+    function setMeter(grade, baseline) {
+        grade = Math.max(0, Math.min(1, grade));
+        const fill = $('meter-fill');
+        const mark = $('meter-mark');
+        fill.style.width = (grade * 100).toFixed(1) + '%';
+        fill.className = 'meter-fill ' + (grade >= baseline ? '' : grade >= baseline - 0.15 ? 'warn' : 'crit');
+        mark.style.left = (baseline * 100).toFixed(1) + '%';
+        mark.style.display = 'block';
+        $('grade-big').innerHTML = grade.toFixed(3) + '<span> / 1.00</span>';
+        const v = $('verdict');
+        if (grade >= baseline) { v.textContent = '▲ Beats clinical baseline'; v.className = 'verdict beat'; }
+        else if (grade >= baseline - 0.15) { v.textContent = '◆ At protocol parity'; v.className = 'verdict at'; }
+        else { v.textContent = '▼ Below baseline'; v.className = 'verdict below'; }
+    }
+
+    // ── Patients table ──
+    function renderPatients(pts, tbodyId) {
+        const tbody = $(tbodyId || 'pt-table');
+        tbody.innerHTML = '';
+        (pts || []).forEach(p => {
+            const hr = p.vitals?.heart_rate ?? 0;
+            const spo2 = p.vitals?.spo2 ?? 0;
+            const hrC = hr > 110 || hr < 50 ? 'v-crit' : hr > 100 ? 'v-warn' : 'v-ok';
+            const spC = spo2 < 92 ? 'v-crit' : spo2 < 95 ? 'v-warn' : 'v-ok';
+            const row = document.createElement('tr');
+            if (tbodyId === 'pt-table') {
+                row.innerHTML = `<td><b>${p.patient_id}</b></td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.chief_complaint}</td><td class="mono ${hrC}">${hr}</td><td class="mono ${spC}">${spo2}%</td>`;
+            } else {
+                row.innerHTML = `<td><b>${p.patient_id}</b><div class="sub">${p.age}y ${p.sex}</div></td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.chief_complaint}</td><td class="mono ${hrC}">${hr}</td><td class="mono">${p.vitals?.systolic_bp ?? 0}/${p.vitals?.diastolic_bp ?? 0}</td><td class="mono ${spC}">${spo2}%</td><td class="mono">${p.vitals?.gcs ?? 15}</td>`;
+            }
+            tbody.appendChild(row);
+        });
+    }
+
+    // ── Logs ──
+    function addLog(type, detail, reward, reason, isAgent) {
+        const list = $(isAgent ? 'agent-log' : 'log');
+        const li = document.createElement('li');
+        li.className = 'log-item';
+        const rwdColor = reward >= 0.1 ? '#3FC0B0' : reward < 0 ? '#E63946' : '#8B919C';
+        const actCls = isAgent || type === 'DONE' || type === 'RESET' ? 'teal' : '';
+        li.innerHTML = `
+            <div class="log-time"><span>${type} · STEP ${typeof reward === 'number' ? (isAgent ? '' : '') : ''}</span><span class="log-rwd" style="color:${rwdColor}">${typeof reward === 'number' ? (reward >= 0 ? '+' : '') + reward.toFixed(2) : reward}</span></div>
+            <div><span class="log-act ${actCls}">${type}</span> ${detail}</div>
+            ${reason ? `<div class="rationale">${reason}</div>` : ''}`;
+        list.prepend(li);
+        while (list.children.length > 30) list.lastChild.remove();
+    }
+
+    // ── Agent run ──
+    async function runAgent() {
+        if (agentRunning) return;
+        const taskId = $('task-select').value;
+        const useLlm = $('agent-mode').value === 'true';
+
+        agentRunning = true;
+        $('btn-agent').disabled = true;
+        const badge = $('agent-badge');
+        badge.textContent = 'RUNNING…';
+        badge.className = 'agent-badge run';
+        $('agent-log').innerHTML = '';
+        $('tele-total').textContent = '+0.00';
+        resetNodes();
+        highlightNode('ASSESS', false);
+        telePoints.length = 0;
+        drawTelemetry('tele-svg', telePoints, 0);
+        $('rationale').innerHTML = '<b>RUNNING.</b> Reading vitals…';
+
+        try {
+            const resp = await fetch(`${BASE}/run-agent`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ task_id: taskId, use_llm: useLlm })
+            });
+            if (!resp.ok) throw new Error(`run-agent failed: ${resp.status}`);
+            const data = await resp.json();
+            const baseline = (tasks.find(t => t.id === taskId) || {}).baseline_score || 0.5;
+
+            data.steps.forEach((s, i) => setTimeout(() => addAgentStep(s, data.steps.length), i * 420));
+
+            setTimeout(async () => {
+                const grade = (data.final_grade !== null && data.final_grade !== undefined) ? data.final_grade : 0;
+                setMeter(grade, baseline);
+                badge.textContent = 'DONE';
+                badge.className = 'agent-badge ok';
+                try {
+                    const st = await (await fetch(`${BASE}/state?session_id=${data.session_id}`)).json();
+                    if (st && st.patients) { renderPatients(st.patients, 'pt-table'); renderVitals(st); }
+                } catch (e) {}
+                setTimeout(() => { badge.textContent = 'IDLE'; badge.className = 'agent-badge'; }, 1800);
+            }, data.steps.length * 420 + 200);
+        } catch (e) {
+            addLog('ERROR', e.message, 0, '—', true);
+            badge.textContent = 'ERROR';
+            badge.className = 'agent-badge';
+        } finally {
+            agentRunning = false;
+            $('btn-agent').disabled = false;
+        }
+    }
+
+    function addAgentStep(s, totalSteps) {
+        const a = s.action || {};
+        const rwd = s.reward?.score ?? 0;
+        const node = NODE_MAP[a.action_type] || 'ASSESS';
+
+        NODE_ORDER.forEach((n, i) => {
+            const done = NODE_ORDER.indexOf(node) > i;
+            if (done) markNodeDone(NODE_ORDER[i]);
+        });
+        highlightNode(node, false);
+        markNodeDone(node);
+
+        telePoints.push(rwd);
+        drawTelemetry('tele-svg', telePoints, 0);
+        const total = telePoints.reduce((x, y) => x + y, 0);
+        $('tele-total').textContent = (total >= 0 ? '+' : '') + total.toFixed(2);
+
+        $('rationale').innerHTML = `<b>STEP ${s.step} · ${(a.action_type || '').replace(/_/g, ' ').toUpperCase()}</b><br>${a.parameter || ''} → ${a.patient_id}. ${a.rationale || ''}`;
+
+        const act = (a.action_type || '').toUpperCase();
+        addLog(`STEP ${s.step}`, `${act} ${a.parameter} → ${a.patient_id}`, rwd, a.rationale || '', true);
+    }
+
+    // ── Manual mode ──
+    function switchTab(name) {
+        $('tab-copilot').className = 'tab' + (name === 'copilot' ? ' active' : '');
+        $('tab-manual').className = 'tab' + (name === 'manual' ? ' active' : '');
+        $('pane-copilot').className = 'tab-pane' + (name === 'copilot' ? ' active' : '');
+        $('pane-manual').className = 'tab-pane' + (name === 'manual' ? ' active' : '');
+    }
+
+    function updateParams() {
+        const sel = $('act-param');
+        const type = $('act-type').value;
+        sel.innerHTML = '';
+        (PARAMS[type] || []).forEach(p => {
+            const o = document.createElement('option');
+            o.value = p; o.textContent = p.replace(/_/g, ' ');
+            sel.appendChild(o);
+        });
+    }
+
+    function updatePatientDropdown() {
+        const sel = $('act-patient');
+        sel.innerHTML = '';
+        patients.forEach(p => {
+            const o = document.createElement('option');
+            o.value = p.patient_id;
+            o.textContent = `${p.patient_id} — ${p.chief_complaint.substring(0, 26)}`;
+            sel.appendChild(o);
+        });
+    }
+
+    async function doReset() {
+        const taskId = $('task-select').value;
+        const btn = $('btn-reset');
+        btn.disabled = true; btn.textContent = 'LOADING…';
+        try {
+            const resp = await fetch(`${BASE}/reset`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ task_id: taskId })
+            });
+            const data = await resp.json();
+            sessionId = data.session_id;
+            stepCount = 0;
+            episodeDone = false;
+            $('btn-step').disabled = false;
+            $('log').innerHTML = '';
+            $('tele-total-manual').textContent = '+0.00';
+            telePoints.length = 0;
+            drawTelemetry('tele-svg-manual', telePoints, 0);
+            resetNodes();
+            const obs = data.observation;
+            if (obs) {
+                patients = obs.patients || [];
+                updatePatientDropdown();
+                renderPatients(patients, 'pt-table-manual');
+                renderVitals(obs);
+                $('manual-rationale').innerHTML = `<b>EPISODE STARTED.</b> ${taskId}. Your move.`;
+            }
+            addLog('RESET', taskId, 0, '—', false);
+        } catch (e) {
+            addLog('ERROR', e.message, 0, '—', false);
+        }
+        btn.disabled = false; btn.textContent = '⟳ START EPISODE';
+    }
+
+    async function doStep() {
+        if (!sessionId || episodeDone) return;
+        const action = {
+            action_type: $('act-type').value,
+            parameter: $('act-param').value,
+            patient_id: $('act-patient').value,
+            rationale: $('act-rationale').value || 'Clinical judgment'
+        };
+        $('btn-step').disabled = true;
+        try {
+            const resp = await fetch(`${BASE}/step?session_id=${sessionId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(action)
+            });
+            const data = await resp.json();
+            stepCount++;
+            const reward = data.reward?.score ?? 0;
+            telePoints.push(reward);
+            drawTelemetry('tele-svg-manual', telePoints, 0);
+            const total = telePoints.reduce((x, y) => x + y, 0);
+            $('tele-total-manual').textContent = (total >= 0 ? '+' : '') + total.toFixed(2);
+
+            const node = NODE_MAP[action.action_type] || 'ASSESS';
+            NODE_ORDER.forEach((n, i) => { if (NODE_ORDER.indexOf(node) > i) markNodeDone(NODE_ORDER[i]); });
+            highlightNode(node, false);
+            markNodeDone(node);
+            $('manual-rationale').innerHTML = `<b>${action.action_type.toUpperCase()} · ${action.parameter}</b><br>${action.rationale}`;
+
+            const obs = data.observation;
+            if (obs) {
+                patients = obs.patients || patients;
+                renderPatients(patients, 'pt-table-manual');
+                renderVitals(obs);
+            }
+            addLog(action.action_type.toUpperCase(), `${action.parameter} → ${action.patient_id}`, reward, data.reward?.reason || '', false);
+
+            if (data.done) {
+                episodeDone = true;
+                $('btn-step').disabled = true;
+                const finalScore = data.info?.grading?.score ?? reward;
+                const baseline = (tasks.find(t => t.id === $('task-select').value) || {}).baseline_score || 0.5;
+                setMeter(finalScore, baseline);
+                addLog('DONE', `Final grade ${finalScore.toFixed(3)}`, finalScore, 'Episode complete', false);
+            } else {
+                $('btn-step').disabled = false;
+            }
+        } catch (e) {
+            addLog('ERROR', e.message, 0, '—', false);
+            $('btn-step').disabled = false;
+        }
+    }
+
+    // ── WebSocket live updates ──
+    function connectWS() {
+        const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${proto}//${location.host}/ws`);
+        ws.onopen = () => { $('ws-badge').textContent = 'LIVE'; };
+        ws.onclose = () => { $('ws-badge').textContent = 'LINK'; setTimeout(connectWS, 3000); };
+        ws.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.state && data.state.patients) {
+                renderPatients(data.state.patients, 'pt-table');
+                renderVitals(data.state);
+            }
+        };
+    }
+
+    // ── Init ──
+    $('task-select').addEventListener('change', onTaskChange);
+    updateParams();
+    loadScenarios();
+    connectWS();
+</script>
+</body>
+</html>
