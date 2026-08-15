@@ -42,7 +42,7 @@ tags:
 
 Every minute in an emergency department is a race against biology. A STEMI needs a cath lab within **90 minutes**. Sepsis needs antibiotics inside the **3-hour bundle**. Stroke needs a CT within **25 minutes**. When clinicians are overwhelmed, protocols fail and patients are lost.
 
-**SURGICAL** is a clinical-triage copilot that watches a patient walk in and decides the *next critical action* — EKG? Cath lab? Antibiotics? — and explains itself in real time. It is a safe training ground for emergency triage decision-making: the agent learns from a dense clinical reward signal, then demonstrates its reasoning step-by-step so humans can learn too.
+**SURGICAL** is a clinical-triage copilot that watches a patient walk in and decides the *next critical action* — EKG? Cath lab? Antibiotics? — and explains itself in real time. It is a safe training ground for emergency triage decision-making: the agent learns from a dense clinical reward signal, then demonstrates its reasoning step-by-step so humans can verify, challenge, and learn from it — because in medicine, the model proposes and the clinician decides.
 
 ---
 
@@ -230,9 +230,10 @@ fallback) → `HF_TOKEN` (Hugging Face router) → **deterministic heuristic
 policy** (always works, zero keys). The demo therefore never breaks for judges.
 
 **Hybrid design:** the LLM *proposes* the first few actions; a deterministic
-clinical-policy layer *guarantees* the protocol completes. Episodes finish in
-13–21s and beat the clinical baseline on all six scenarios — verified live on
-Hugging Face Spaces.
+clinical-policy layer *guarantees* the protocol completes — an auditable
+human-checkable transcript of every decision, so the AI earns trust the way a
+clinician would: by explaining itself. Episodes finish in 13–21s and beat the
+clinical baseline on all six scenarios — verified live on Hugging Face Spaces.
 
 ### Docker
 ```bash
